@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Дневник 2А">
+<meta name="theme-color" content="#eef3fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10141d" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>Дневник 2А</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Golos+Text:wght@400;500;600&family=Rubik:wght@500;600;700&display=swap">
+<style>
+/* Layout: school diary spread — week strip on top, the day's ruled page on the left, BJJ / water / week summary on the right */
+:root {
+  --paper: #eef3fa;
+  --sheet: #ffffff;
+  --rule: #d6e0ef;
+  --ink: #1b2740;
+  --ink-soft: #5d6a84;
+  --pen: #2350c4;
+  --pen-soft: #e3eafb;
+  --red: #cf3a2c;
+  --red-soft: #fbe7e4;
+  --water: #0b8fa8;
+  --water-soft: #def3f7;
+  --mat: #1e2433;
+  --mat-ink: #f1f3f8;
+  --belt: #f1c232;
+  --ok: #2f8a4c;
+  --f-display: "Rubik", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --f-hand: "Caveat", "Comic Sans MS", cursive;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10141d; --sheet: #181e2b; --rule: #283146; --ink: #e7ecf6; --ink-soft: #9aa6bf;
+    --pen: #85a7ff; --pen-soft: #22304f; --red: #ff7c6c; --red-soft: #3a2224;
+    --water: #4cc8de; --water-soft: #15343b; --mat: #232a3c; --mat-ink: #f1f3f8; --belt: #f1c232; --ok: #5cc27c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10141d; --sheet: #181e2b; --rule: #283146; --ink: #e7ecf6; --ink-soft: #9aa6bf;
+  --pen: #85a7ff; --pen-soft: #22304f; --red: #ff7c6c; --red-soft: #3a2224;
+  --water: #4cc8de; --water-soft: #15343b; --mat: #232a3c; --mat-ink: #f1f3f8; --belt: #f1c232; --ok: #5cc27c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 110px; display: grid; gap: 16px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 1.9rem; margin: 0; letter-spacing: -0.01em; }
+.brand h1 b { color: var(--pen); }
+.brand .year { color: var(--ink-soft); font-size: .88rem; }
+.status { font-size: .8rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.status[data-s="saving"]::before { background: var(--belt); }
+.status[data-s="local"]::before, .status[data-s="ro"]::before, .status[data-s="err"]::before { background: var(--red); }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; padding: 6px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--pen); color: var(--pen); }
+.btn.primary { background: var(--pen); border-color: var(--pen); color: var(--sheet); }
+.btn.primary:hover { color: var(--sheet); filter: brightness(1.08); }
+.iconbtn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--rule); background: var(--sheet); display: inline-grid; place-items: center; font-size: 1.1rem; line-height: 1; }
+.iconbtn:hover { border-color: var(--pen); color: var(--pen); }
+
+/* week strip */
+.week { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 12px; display: grid; gap: 10px; }
+.week-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.week-head .range { font-family: var(--f-display); font-weight: 600; font-size: 1.05rem; }
+.week-nav { display: flex; gap: 6px; align-items: center; }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day {
+  border: 1px solid var(--rule); border-radius: var(--r); background: var(--sheet); padding: 8px 6px 7px;
+  display: grid; gap: 2px; justify-items: center; text-align: center; min-width: 0; position: relative;
+}
+.day:hover { border-color: var(--pen); }
+.day .dw { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.day .dn { font-family: var(--f-display); font-weight: 600; font-size: 1.3rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.day .meta { font-size: .7rem; color: var(--ink-soft); min-height: 1.1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.day .marks { display: flex; gap: 3px; min-height: 18px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.day .marks .gr { font-family: var(--f-hand); font-weight: 700; color: var(--red); font-size: 1.05rem; line-height: 1; }
+.belt-dot { width: 18px; height: 6px; border-radius: 2px; background: var(--mat); border: 1px solid var(--rule); position: relative; }
+.belt-dot::after { content: ""; position: absolute; right: 3px; top: -1px; width: 3px; height: 6px; background: var(--belt); }
+.day.is-today { border-color: var(--pen); }
+.day.is-today .dn { color: var(--pen); }
+.day.is-sel { background: var(--pen); border-color: var(--pen); color: var(--sheet); }
+.day.is-sel .dw, .day.is-sel .meta, .day.is-sel .dn { color: var(--sheet); }
+.day.is-sel .marks .gr { color: var(--sheet); }
+.day.off .dn { color: var(--ink-soft); }
+.sign { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--ink-soft); }
+.sign input { width: 18px; height: 18px; accent-color: var(--pen); }
+.sign.on { color: var(--ink); }
+.sign .stamp { font-family: var(--f-hand); font-size: 1.25rem; color: var(--pen); }
+
+/* main spread */
+.spread { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 880px) { .spread { grid-template-columns: minmax(0, 1fr); } }
+.page { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.page-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 16px 18px 12px; border-bottom: 2px solid var(--rule); }
+.page-head h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 1.35rem; text-wrap: balance; }
+.chip { display: inline-block; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; background: var(--pen-soft); color: var(--pen); font-weight: 600; vertical-align: middle; margin-left: 6px; }
+.cols { display: grid; gap: 0 10px; grid-template-columns: 34px minmax(0, 1.05fr) minmax(0, 1.6fr) 150px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); padding: 8px 12px 6px 0; border-bottom: 1px solid var(--rule); }
+.cols span:first-child { text-align: center; }
+.lessons { list-style: none; margin: 0; padding: 0; position: relative; }
+.lessons::before { content: ""; position: absolute; left: 34px; top: 0; bottom: 0; width: 1px; background: var(--red); opacity: .55; }
+.cols { position: relative; }
+.lesson { display: grid; grid-template-columns: 34px minmax(0, 1.05fr) minmax(0, 1.6fr) 150px; gap: 0 10px; align-items: start; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+.lesson:hover .del { opacity: 1; }
+.num { text-align: center; font-family: var(--f-display); font-weight: 600; color: var(--ink-soft); padding-top: 6px; font-variant-numeric: tabular-nums; }
+.subj { display: grid; gap: 1px; padding-left: 10px; min-width: 0; }
+.field { width: 100%; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 6px; }
+.field:hover { border-color: var(--rule); }
+.field:focus { border-color: var(--pen); background: var(--sheet); outline: none; }
+.subj .field { font-weight: 600; font-size: 1rem; }
+.time { font-size: .76rem; color: var(--ink-soft); padding-left: 7px; font-variant-numeric: tabular-nums; }
+.hw { resize: none; overflow: hidden; min-height: 34px; line-height: 1.4; color: var(--pen); }
+.hw::placeholder, .field::placeholder { color: var(--ink-soft); opacity: .55; }
+.right { display: grid; gap: 6px; justify-items: end; }
+.grades { display: flex; gap: 3px; }
+.g { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; font-family: var(--f-hand); font-weight: 700; font-size: 1.15rem; line-height: 1; color: var(--ink-soft); padding: 0; }
+.g:hover { border-color: var(--red); color: var(--red); }
+.g.on { border: 2px solid var(--red); color: var(--red); background: var(--red-soft); font-size: 1.5rem; }
+.row-actions { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--ink-soft); }
+.row-actions label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.row-actions input { accent-color: var(--ok); width: 16px; height: 16px; }
+.lesson.done .hw { text-decoration: line-through; text-decoration-color: var(--ok); opacity: .75; }
+.del { border: none; background: none; color: var(--ink-soft); opacity: .45; font-size: 1rem; padding: 2px 4px; border-radius: 4px; }
+.del:hover { color: var(--red); opacity: 1; }
+.page-foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; padding: 12px 18px; }
+.hint { font-size: .8rem; color: var(--ink-soft); max-width: 60ch; }
+.note-wrap { padding: 4px 18px 18px; display: grid; gap: 6px; }
+.note-wrap label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.note { width: 100%; min-height: 60px; resize: vertical; border: 1px dashed var(--rule); border-radius: 8px; padding: 8px 10px; background: transparent; }
+.note:focus { border-color: var(--pen); outline: none; }
+.empty { padding: 28px 18px; display: grid; gap: 6px; }
+.empty b { font-family: var(--f-display); font-size: 1.1rem; }
+.empty span { color: var(--ink-soft); }
+@media (max-width: 640px) {
+  .cols { display: none; }
+  .lessons::before { left: 30px; }
+  .lesson { grid-template-columns: 30px minmax(0, 1fr); padding-right: 10px; row-gap: 6px; }
+  .lesson .hw-cell { grid-column: 2; padding-left: 10px; }
+  .lesson .right { grid-column: 2; justify-items: start; padding-left: 16px; grid-auto-flow: column; justify-content: space-between; align-items: center; }
+}
+
+/* side cards */
+.side { display: grid; gap: 14px; }
+.card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; }
+.card h3 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h3 small { font-family: var(--f-body); font-weight: 500; font-size: .8rem; color: var(--ink-soft); }
+.bjj { background: var(--mat); color: var(--mat-ink); border-color: var(--mat); position: relative; overflow: hidden; }
+.bjj::before { content: ""; position: absolute; left: 0; right: 0; top: 44px; height: 10px; background: var(--belt); opacity: .9; }
+.bjj::after { content: ""; position: absolute; right: 26px; top: 40px; width: 16px; height: 18px; background: var(--mat); border: 2px solid var(--belt); }
+.bjj h3 small { color: var(--mat-ink); opacity: .7; }
+.bjj .big { font-family: var(--f-display); font-weight: 700; font-size: 2rem; line-height: 1; margin-top: 14px; font-variant-numeric: tabular-nums; }
+.bjj label { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+.bjj input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--belt); }
+.bjj .field { color: var(--mat-ink); border-color: rgba(255,255,255,.18); }
+.bjj .field:focus { background: rgba(255,255,255,.06); border-color: var(--belt); }
+.bjj .field::placeholder { color: var(--mat-ink); opacity: .5; }
+.bjj .wk { font-size: .8rem; opacity: .75; }
+.glasses { display: flex; flex-wrap: wrap; gap: 4px; }
+.glass { width: 26px; height: 32px; }
+.glass path.cup { fill: none; stroke: var(--water); stroke-width: 1.6; }
+.glass path.lvl { fill: var(--water); }
+.glass.empty path.lvl { fill: transparent; }
+.water-count { font-family: var(--f-display); font-weight: 600; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.water-count span { font-family: var(--f-body); font-weight: 400; font-size: .85rem; color: var(--ink-soft); }
+.water-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn.water { background: var(--water); border-color: var(--water); color: var(--sheet); }
+.btn.water:hover { color: var(--sheet); filter: brightness(1.08); }
+.toggles { display: grid; gap: 6px; font-size: .86rem; border-top: 1px solid var(--rule); padding-top: 10px; }
+.toggles label { display: flex; align-items: center; gap: 8px; }
+.toggles input { accent-color: var(--water); width: 16px; height: 16px; }
+.next { font-size: .82rem; color: var(--ink-soft); }
+.next b { color: var(--water); font-variant-numeric: tabular-nums; }
+.sum-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.sum-list li { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; border-bottom: 1px dotted var(--rule); padding-bottom: 3px; }
+.sum-list .gs { font-family: var(--f-hand); font-weight: 700; font-size: 1.2rem; color: var(--red); letter-spacing: .08em; line-height: 1.1; }
+.muted { color: var(--ink-soft); font-size: .86rem; }
+
+/* settings */
+.settings { background: var(--sheet); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: grid; gap: 18px; }
+.settings h2 { margin: 0; font-family: var(--f-display); font-weight: 600; font-size: 1.3rem; }
+.settings h4 { margin: 0 0 6px; font-family: var(--f-display); font-weight: 600; font-size: .98rem; }
+.sch-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 900px) { .sch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sch-grid { grid-template-columns: minmax(0, 1fr); } }
+.sch-col { border: 1px solid var(--rule); border-radius: var(--r); padding: 10px; display: grid; gap: 4px; align-content: start; }
+.sch-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) 24px; gap: 4px; align-items: center; }
+.sch-row .n { font-size: .78rem; color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.sch-row .field { border-color: var(--rule); font-size: .9rem; padding: 4px 6px; }
+.add { border: 1px dashed var(--rule); background: none; border-radius: 6px; padding: 4px 8px; color: var(--pen); font-size: .85rem; margin-top: 4px; }
+.add:hover { border-color: var(--pen); }
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.set-grid .box { display: grid; gap: 6px; align-content: start; }
+.kv { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 6px; align-items: center; font-size: .88rem; }
+.kv .field { border-color: var(--rule); }
+.kv label { color: var(--ink-soft); }
+
+/* water reminder banner */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: min(520px, calc(100% - 32px));
+  margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--water); color: var(--sheet); border-radius: 16px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; box-shadow: 0 10px 30px rgba(10, 40, 60, .3); z-index: 10;
+}
+.toast .msg { flex: 1; min-width: 0; }
+.toast b { font-family: var(--f-display); font-size: 1.05rem; display: block; }
+.toast button { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 999px; padding: 6px 12px; font-weight: 600; }
+.toast button.yes { background: var(--sheet); color: var(--water); border-color: var(--sheet); }
+.toast .drop { width: 30px; height: 36px; flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .toast:not([hidden]) { animation: rise .35s ease-out; }
+  @keyframes rise { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+}
+
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+a.btn { text-decoration: none; display: inline-block; }
+.cal-row { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app"></div>
+
+<div class="toast" id="toast" hidden role="alert">
+  <svg class="drop" viewBox="0 0 30 36" aria-hidden="true"><path d="M15 2 C9 12 4 18 4 24 a11 11 0 0 0 22 0 C26 18 21 12 15 2Z" fill="currentColor" opacity=".95"/></svg>
+  <div class="msg"><b id="toast-title">Пора попить воды</b><span id="toast-text">Один стакан — и дальше по делам.</span></div>
+  <button class="yes" id="toast-yes">Выпил</button>
+  <button id="toast-later">Позже</button>
+</div>
+
+<script>
+(() => {
+  // ---------- dates ----------
+  const DOW = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const DOW_FULL = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+  const MON_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const pad = n => String(n).padStart(2, '0');
+  const keyOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const parse = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return keyOf(d); };
+  const mondayOf = k => { const d = parse(k); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return keyOf(d); };
+  const todayKey = () => keyOf(new Date());
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const schoolYear = k => { const d = parse(k); const y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1; return y + '/' + (y + 1); };
+
+  // ---------- default data (example schedule, editable) ----------
+  function defaultSettings() {
+    return {
+      className: '2А',
+      times: ['8:00–8:40', '8:50–9:30', '9:50–10:30', '10:50–11:30', '11:40–12:20', '12:30–13:10'],
+      schedule: {
+        '1': ['Разговоры о важном', 'Русский язык', 'Математика', 'Литературное чтение', 'Физкультура'],
+        '2': ['Русский язык', 'Математика', 'Английский язык', 'Окружающий мир', 'Музыка'],
+        '3': ['Литературное чтение', 'Русский язык', 'Математика', 'Физкультура', 'ИЗО'],
+        '4': ['Русский язык', 'Математика', 'Английский язык', 'Литературное чтение', 'Труд (технология)'],
+        '5': ['Литературное чтение', 'Русский язык', 'Окружающий мир', 'Физкультура']
+      },
+      bjj: { '2': '19:00', '4': '19:00', '6': '10:30' },
+      water: { from: 8, to: 20, goal: 8, ml: 200 }
+    };
+  }
+  function mergeSettings(raw) {
+    const d = defaultSettings(); const r = raw || {};
+    return {
+      className: r.className ?? d.className,
+      times: Array.isArray(r.times) ? r.times : d.times,
+      schedule: Object.assign({}, d.schedule, r.schedule || {}),
+      bjj: Object.assign({}, d.bjj, r.bjj || {}),
+      water: Object.assign({}, d.water, r.water || {})
+    };
+  }
+
+  let S = defaultSettings();
+  let D = {};
+  const view = { date: todayKey(), settings: false };
+
+  // ---------- storage ----------
+  const LS_KEY = 'dnevnik-2a-v1';
+  let mode = 'pending'; // pending | db | local
+  let db = null;
+  let readOnly = false;
+  const dirty = new Set();
+  const timers = {};
+  const chains = {};
+  let readyResolve; const ready = new Promise(r => readyResolve = r);
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch { return false; } }
+
+  function setStatus() {
+    const el = document.getElementById('status'); if (!el) return;
+    let s = 'saved', t = 'Сохранено';
+    if (mode === 'pending') { s = 'saving'; t = 'Подключение…'; }
+    else if (readOnly) { s = 'ro'; t = 'Только просмотр'; }
+    else if (dirty.size) { s = 'saving'; t = 'Сохраняется…'; }
+    else if (mode === 'local') { s = 'local'; t = 'Сохранено на телефоне'; }
+    el.dataset.s = s; el.textContent = t;
+  }
+
+  function queueSave(docKey, delay = 600) {
+    if (readOnly) return;
+    dirty.add(docKey); setStatus();
+    clearTimeout(timers[docKey]);
+    timers[docKey] = setTimeout(() => flush(docKey), delay);
+  }
+  function flush(docKey) {
+    timers[docKey] = null;
+    chains[docKey] = (chains[docKey] || Promise.resolve()).then(async () => {
+      await ready;
+      try {
+        if (mode === 'db') {
+          if (docKey === 'settings') await db.doc('diary/settings').set(clone(S));
+          else { const k = docKey.slice(4); await db.doc('days/' + k).set(clone(D[k] || {})); }
+        } else {
+          lsSet(LS_KEY, JSON.stringify({ S, D }));
+        }
+      } catch (e) {
+        if (e && e.code === 'invalid_argument') { readOnly = true; render(); }
+        else if (e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); try { if (docKey === 'settings') await db.doc('diary/settings').set(clone(S)); else { const k = docKey.slice(4); await db.doc('days/' + k).set(clone(D[k] || {})); } } catch {} }
+        else if (e && e.code === 'quota_exceeded') { const el = document.getElementById('status'); if (el) { el.dataset.s = 'err'; el.textContent = 'Хранилище заполнено'; } }
+      }
+      if (!timers[docKey]) dirty.delete(docKey);
+      setStatus();
+    });
+  }
+
+  async function connect() {
+    // wait briefly for the viewer runtime
+    
+    if (window.claude && window.claude.use) {
+      try { db = await window.claude.use('db'); } catch { db = null; }
+    }
+    if (db) {
+      mode = 'db';
+      try {
+        const user = await window.claude.use('user');
+        if (user && user.can) { const w = await user.can('data.write'); if (w === false) readOnly = true; }
+      } catch {}
+      db.doc('diary/settings').onSnapshot(snap => {
+        if (dirty.has('settings')) return;
+        if (snap.exists) { S = mergeSettings(clone(snap.data())); render(); }
+      }, () => {});
+      db.collection('days').limit(1000).onSnapshot(qs => {
+        const nd = {};
+        qs.docs.forEach(d => { nd[d.id] = clone(d.data()); });
+        for (const k of Object.keys(D)) if (dirty.has('day:' + k)) nd[k] = D[k];
+        D = nd; render();
+      }, () => {});
+    } else {
+      mode = 'local';
+      const raw = lsGet(LS_KEY);
+      if (raw) { try { const p = JSON.parse(raw); S = mergeSettings(p.S); D = p.D || {}; } catch {} }
+    }
+    readyResolve();
+    render();
+  }
+
+  // ---------- model helpers ----------
+  const wd = k => parse(k).getDay();
+  function templateLessons(k) { return (S.schedule[String(wd(k))] || []).map(n => ({ name: n, hw: '', grade: null, done: false })); }
+  function lessonsFor(k) { return (D[k] && Array.isArray(D[k].lessons)) ? D[k].lessons : templateLessons(k); }
+  function dayObj(k) { if (!D[k]) D[k] = {}; return D[k]; }
+  function materialize(k) { const d = dayObj(k); if (!Array.isArray(d.lessons)) d.lessons = templateLessons(k); return d; }
+  const isSchool = k => { const w = wd(k); return w >= 1 && w <= 5; };
+  const bjjTime = k => S.bjj[String(wd(k))] || null;
+
+  // ---------- render ----------
+  const app = document.getElementById('app');
+
+  function glassSvg(full) {
+    return `<svg class="glass${full ? '' : ' empty'}" viewBox="0 0 26 32" aria-hidden="true"><path class="lvl" d="M6.2 12 H19.8 L18.4 29 H7.6Z"/><path class="cup" d="M3 3 H23 L20.3 30 H5.7Z"/></svg>`;
+  }
+
+  function weekStrip() {
+    const mon = mondayOf(view.date), t = todayKey();
+    const sun = addDays(mon, 6);
+    const dm = parse(mon), ds = parse(sun);
+    const range = dm.getMonth() === ds.getMonth()
+      ? `${dm.getDate()}–${ds.getDate()} ${MON_GEN[ds.getMonth()]}`
+      : `${dm.getDate()} ${MON_GEN[dm.getMonth()]} – ${ds.getDate()} ${MON_GEN[ds.getMonth()]}`;
+    let cells = '';
+    for (let i = 0; i < 7; i++) {
+      const k = addDays(mon, i), d = parse(k), w = d.getDay();
+      const ls = isSchool(k) ? lessonsFor(k) : [];
+      const grades = ls.filter(l => l.grade).map(l => `<span class="gr">${l.grade}</span>`).join('');
+      const bjj = bjjTime(k);
+      let meta = isSchool(k) ? `${ls.length} ур.` : (bjj ? 'БЖЖ' : 'выходной');
+      if (isSchool(k) && bjj) meta += ' · БЖЖ';
+      cells += `<button class="day${k === t ? ' is-today' : ''}${k === view.date ? ' is-sel' : ''}${!isSchool(k) && !bjj ? ' off' : ''}" data-act="pick" data-k="${k}" aria-pressed="${k === view.date}">
+        <span class="dw">${DOW[w]}</span><span class="dn">${d.getDate()}</span>
+        <span class="meta">${meta}</span>
+        <span class="marks">${grades}${bjj ? '<span class="belt-dot" title="Тренировка БЖЖ"></span>' : ''}</span>
+      </button>`;
+    }
+    const signed = !!(D[mon] && D[mon].sign);
+    return `<section class="week" aria-label="Неделя">
+      <div class="week-head">
+        <div class="week-nav">
+          <button class="iconbtn" data-act="week" data-n="-7" aria-label="Предыдущая неделя">‹</button>
+          <span class="range">${range}</span>
+          <button class="iconbtn" data-act="week" data-n="7" aria-label="Следующая неделя">›</button>
+          ${view.date !== t ? '<button class="btn" data-act="today">Сегодня</button>' : ''}
+        </div>
+        <label class="sign${signed ? ' on' : ''}"><input type="checkbox" id="sign-${mon}" data-act="sign" data-k="${mon}" ${signed ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+          Подпись родителя за неделю ${signed ? '<span class="stamp">подписано</span>' : ''}</label>
+      </div>
+      <div class="days">${cells}</div>
+    </section>`;
+  }
+
+  function dayPage() {
+    const k = view.date, d = parse(k), w = d.getDay(), t = todayKey();
+    const head = `<div class="page-head"><h2>${DOW_FULL[w]}, ${d.getDate()} ${MON_GEN[d.getMonth()]}${k === t ? '<span class="chip">сегодня</span>' : ''}</h2>
+      <span class="muted">${isSchool(k) ? lessonsFor(k).length + ' урок(ов)' : 'уроков нет'}</span></div>`;
+    const day = D[k] || {};
+    const note = `<div class="note-wrap"><label for="note-${k}">Заметки дня / для родителей</label>
+      <textarea class="note" id="note-${k}" data-f="note" placeholder="Принести форму на физкультуру, собрание в четверг…" ${readOnly ? 'readonly' : ''}>${esc(day.note || '')}</textarea></div>`;
+    if (!isSchool(k)) {
+      const bjj = bjjTime(k);
+      return `<section class="page">${head}<div class="empty"><b>${w === 6 ? 'Суббота — уроков нет' : 'Выходной'}</b>
+        <span>${bjj ? `Тренировка по БЖЖ в ${esc(bjj)} — отметка справа.` : 'Можно отдохнуть и не забывать пить воду.'}</span></div>${note}</section>`;
+    }
+    const ls = lessonsFor(k);
+    const rows = ls.map((l, i) => `<li class="lesson${l.done ? ' done' : ''}">
+      <span class="num">${i + 1}</span>
+      <div class="subj"><input class="field" id="n-${k}-${i}" data-f="name" data-i="${i}" value="${esc(l.name)}" placeholder="Название урока" aria-label="Урок ${i + 1}" ${readOnly ? 'readonly' : ''}>
+        <span class="time">${esc(S.times[i] || '')}</span></div>
+      <div class="hw-cell"><textarea class="field hw" id="hw-${k}-${i}" data-f="hw" data-i="${i}" rows="1" placeholder="Что задали…" aria-label="Домашнее задание: ${esc(l.name)}" ${readOnly ? 'readonly' : ''}>${esc(l.hw)}</textarea></div>
+      <div class="right">
+        <div class="grades" role="group" aria-label="Оценка">${[5, 4, 3, 2].map(g => `<button class="g${l.grade === g ? ' on' : ''}" data-act="grade" data-i="${i}" data-g="${g}" aria-pressed="${l.grade === g}" ${readOnly ? 'disabled' : ''}>${g}</button>`).join('')}</div>
+        <div class="row-actions"><label><input type="checkbox" id="done-${k}-${i}" data-act="done" data-i="${i}" ${l.done ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>ДЗ сделано</label>
+          ${readOnly ? '' : `<button class="del" data-act="del" data-i="${i}" aria-label="Убрать урок ${i + 1} на этот день">✕</button>`}</div>
+      </div>
+    </li>`).join('');
+    const custom = D[k] && Array.isArray(D[k].lessons);
+    return `<section class="page">${head}
+      <div class="cols"><span>№</span><span style="padding-left:10px">Предмет</span><span>Домашнее задание</span><span style="text-align:right">Оценка</span></div>
+      <ol class="lessons">${rows}</ol>
+      <div class="page-foot">
+        <span class="hint">Название урока можно исправить прямо здесь — это изменит только этот день. Постоянное расписание — в разделе «Расписание».</span>
+        ${readOnly ? '' : `<div class="toolbar"><button class="btn" data-act="add">+ Урок</button>${custom ? '<button class="btn" data-act="reset">Как в расписании</button>' : ''}</div>`}
+      </div>${note}</section>`;
+  }
+
+  function bjjCard() {
+    const k = view.date, time = bjjTime(k);
+    const list = ['2', '4', '6'].filter(x => S.bjj[x]).map(x => `${DOW[+x]} ${S.bjj[x]}`).join(' · ');
+    if (!time) return `<section class="card bjj"><h3>БЖЖ <small>${DOW_FULL[wd(k)].toLowerCase()}</small></h3>
+      <div class="big" style="font-size:1.3rem">Сегодня без тренировки</div><div class="wk">Расписание: ${esc(list)}</div></section>`;
+    const day = D[k] || {};
+    return `<section class="card bjj"><h3>Тренировка БЖЖ <small>${DOW[wd(k)]}</small></h3>
+      <div class="big">${esc(time)}</div>
+      <label><input type="checkbox" id="bjj-${k}" data-act="bjj" ${day.bjjDone ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>Был на тренировке</label>
+      <input class="field" id="bjjn-${k}" data-f="bjjNote" value="${esc(day.bjjNote || '')}" placeholder="Что отрабатывали…" ${readOnly ? 'readonly' : ''}>
+      <label><input type="checkbox" id="bjj-rem" data-act="bjjrem" ${prefs.bjjRemind ? 'checked' : ''}>Напомнить за час — в ${esc(minusHour(time))}</label>
+      <div class="wk">Неделя: ${esc(list)}</div></section>`;
+  }
+
+  function waterCard() {
+    const k = view.date, n = (D[k] && D[k].water) || 0, goal = S.water.goal;
+    let gl = ''; for (let i = 0; i < Math.max(goal, n); i++) gl += glassSvg(i < n);
+    const isToday = k === todayKey();
+    return `<section class="card"><h3>Вода <small>${isToday ? 'сегодня' : DOW[wd(k)] + ', ' + parse(k).getDate()}</small></h3>
+      <div class="water-count">${n} из ${goal} <span>стаканов · ≈ ${n * S.water.ml} мл</span></div>
+      <div class="glasses" aria-hidden="true">${gl}</div>
+      <div class="water-row">
+        <button class="btn water" data-act="drink" ${readOnly ? 'disabled' : ''}>+ Выпил стакан</button>
+        <button class="iconbtn" data-act="undrink" aria-label="Убрать стакан" ${readOnly || !n ? 'disabled' : ''}>−</button>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="rem-on" data-act="rem" ${prefs.remind ? 'checked' : ''}>Напоминать каждый час (${S.water.from}:00–${S.water.to}:00)</label>
+        <label><input type="checkbox" id="rem-sound" data-act="sound" ${prefs.sound ? 'checked' : ''}>Со звуком</label>
+        <div class="next" id="next-rem"></div>
+        <div><button class="btn" data-act="testrem">Показать напоминание</button></div>
+      </div></section>`;
+  }
+
+  function summaryCard() {
+    const mon = mondayOf(view.date); const bySubj = {}; let open = 0, total = 0;
+    for (let i = 0; i < 5; i++) {
+      const k = addDays(mon, i);
+      for (const l of lessonsFor(k)) {
+        if (l.grade) (bySubj[l.name] = bySubj[l.name] || []).push(l.grade);
+        if (l.hw && l.hw.trim()) { total++; if (!l.done) open++; }
+      }
+    }
+    const rows = Object.entries(bySubj).map(([s, g]) => `<li><span>${esc(s)}</span><span class="gs">${g.join(' ')}</span></li>`).join('');
+    let bjjDone = 0, bjjAll = 0;
+    for (let i = 0; i < 7; i++) { const k = addDays(mon, i); if (bjjTime(k)) { bjjAll++; if (D[k] && D[k].bjjDone) bjjDone++; } }
+    return `<section class="card"><h3>Итог недели</h3>
+      ${rows ? `<ul class="sum-list">${rows}</ul>` : '<span class="muted">Оценок пока нет — они появятся здесь.</span>'}
+      <span class="muted">Домашних заданий: ${total}${total ? `, не сделано: ${open}` : ''}<br>Тренировок БЖЖ: ${bjjDone} из ${bjjAll}</span></section>`;
+  }
+
+  function settingsPanel() {
+    const ro = readOnly ? 'readonly' : '';
+    const cols = ['1', '2', '3', '4', '5'].map(w => {
+      const list = S.schedule[w] || [];
+      return `<div class="sch-col"><h4>${DOW_FULL[+w]}</h4>
+        ${list.map((n, i) => `<div class="sch-row"><span class="n">${i + 1}</span>
+          <input class="field" id="sch-${w}-${i}" data-sf="sch" data-w="${w}" data-i="${i}" value="${esc(n)}" ${ro}>
+          ${readOnly ? '' : `<button class="del" data-act="sch-del" data-w="${w}" data-i="${i}" aria-label="Удалить урок">✕</button>`}</div>`).join('')}
+        ${readOnly ? '' : `<button class="add" data-act="sch-add" data-w="${w}">+ урок</button>`}</div>`;
+    }).join('');
+    const times = S.times.map((t, i) => `<div class="kv"><label for="tm-${i}">${i + 1} урок</label><input class="field" id="tm-${i}" data-sf="time" data-i="${i}" value="${esc(t)}" ${ro}></div>`).join('');
+    const bjj = ['2', '4', '6'].map(w => `<div class="kv"><label for="bj-${w}">${DOW_FULL[+w]}</label><input class="field" id="bj-${w}" type="time" data-sf="bjj" data-w="${w}" value="${esc(S.bjj[w] || '')}" ${ro}></div>`).join('');
+    return `<section class="settings" aria-label="Расписание">
+      <div class="top"><h2>Расписание ${esc(S.className)} класса</h2><button class="btn primary" data-act="settings">Готово</button></div>
+      <p class="hint" style="margin:0">Это постоянное расписание на неделю: впишите свои уроки вместо примера. Переименование урока меняет его и в уже открытых будущих днях; прошлые записи не трогаются.</p>
+      <div class="sch-grid">${cols}</div>
+      <div class="set-grid">
+        <div class="box"><h4>Звонки</h4>${times}</div>
+        <div class="box"><h4>Тренировки БЖЖ</h4>${bjj}<span class="muted">Оставьте поле пустым, если тренировки в этот день нет.</span></div>
+        <div class="box"><h4>Вода</h4>
+          <div class="kv"><label for="w-from">С</label><input class="field" id="w-from" type="number" min="5" max="23" data-sf="wfrom" value="${S.water.from}" ${ro}></div>
+          <div class="kv"><label for="w-to">До</label><input class="field" id="w-to" type="number" min="5" max="23" data-sf="wto" value="${S.water.to}" ${ro}></div>
+          <div class="kv"><label for="w-goal">Цель</label><input class="field" id="w-goal" type="number" min="1" max="15" data-sf="wgoal" value="${S.water.goal}" ${ro}></div>
+          <div class="kv"><label for="w-ml">Стакан, мл</label><input class="field" id="w-ml" type="number" min="50" max="500" step="10" data-sf="wml" value="${S.water.ml}" ${ro}></div>
+        </div>
+        <div class="box"><h4>Класс</h4><div class="kv"><label for="cls">Класс</label><input class="field" id="cls" data-sf="cls" value="${esc(S.className)}" ${ro}></div></div>
+      </div></section>`;
+  }
+
+  function calCard() {
+    return `<section class="card"><h3>Напоминания в Календаре</h3>
+      <span class="muted">Чтобы напоминания приходили, даже когда дневник закрыт, добавьте события в Календарь iPhone: нажмите кнопку, затем «Добавить все».</span>
+      <div class="cal-row"><a class="btn" href="trenirovki-bjj.ics">БЖЖ — за час до начала</a><a class="btn" href="voda.ics">Вода — каждый час</a></div>
+      <span class="muted">Тренировки: вт и чт в 19:00, сб в 10:30. Вода: каждый час с 8:00 до 20:00.</span></section>`;
+  }
+
+  function render() {
+    const ae = document.activeElement;
+    const focusId = ae && ae.id && app.contains(ae) ? ae.id : null;
+    const sel = focusId && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null;
+    const head = `<header class="top">
+      <div class="brand"><h1>Дневник <b>${esc(S.className)}</b></h1><span class="year">${schoolYear(view.date)} учебный год</span><span class="status" id="status"></span></div>
+      <div class="toolbar"><button class="btn${view.settings ? ' primary' : ''}" data-act="settings" aria-expanded="${view.settings}">Расписание</button></div>
+    </header>`;
+    app.innerHTML = head + (view.settings ? settingsPanel() : weekStrip() +
+      `<div class="spread">${dayPage()}<aside class="side">${bjjCard()}${waterCard()}${summaryCard()}${calCard()}</aside></div>`);
+    app.querySelectorAll('textarea.hw').forEach(autosize);
+    if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch {} } }
+    setStatus(); updateNext();
+  }
+  function autosize(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+
+  // ---------- events ----------
+  app.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT') return;
+    const act = b.dataset.act, k = view.date, i = +b.dataset.i;
+    if (act === 'pick') { view.date = b.dataset.k; render(); }
+    else if (act === 'week') { view.date = addDays(view.date, +b.dataset.n); render(); }
+    else if (act === 'today') { view.date = todayKey(); render(); }
+    else if (act === 'settings') { view.settings = !view.settings; render(); window.scrollTo({ top: 0 }); }
+    else if (readOnly) return;
+    else if (act === 'grade') { const d = materialize(k); const g = +b.dataset.g; d.lessons[i].grade = d.lessons[i].grade === g ? null : g; queueSave('day:' + k, 200); render(); }
+    else if (act === 'add') { const d = materialize(k); d.lessons.push({ name: '', hw: '', grade: null, done: false }); queueSave('day:' + k, 200); render(); const el = document.getElementById(`n-${k}-${d.lessons.length - 1}`); if (el) el.focus(); }
+    else if (act === 'del') { const d = materialize(k); d.lessons.splice(i, 1); queueSave('day:' + k, 200); render(); }
+    else if (act === 'reset') { const d = dayObj(k); delete d.lessons; queueSave('day:' + k, 200); render(); }
+    else if (act === 'drink') { drink(k, 1); }
+    else if (act === 'undrink') { drink(k, -1); }
+    else if (act === 'testrem') { showToast(true); }
+    else if (act === 'sch-add') { const w = b.dataset.w; (S.schedule[w] = S.schedule[w] || []).push(''); queueSave('settings', 200); render(); const el = document.getElementById(`sch-${w}-${S.schedule[w].length - 1}`); if (el) el.focus(); }
+    else if (act === 'sch-del') { S.schedule[b.dataset.w].splice(i, 1); queueSave('settings', 200); render(); }
+  });
+
+  app.addEventListener('change', e => {
+    const t = e.target, act = t.dataset.act, k = view.date;
+    if (act === 'rem') { prefs.remind = t.checked; savePrefs(); updateNext(); return; }
+    if (act === 'bjjrem') { prefs.bjjRemind = t.checked; savePrefs(); return; }
+    if (act === 'sound') { prefs.sound = t.checked; savePrefs(); if (t.checked) { ensureAudio(); chime(); } return; }
+    if (readOnly) return;
+    if (act === 'done') { const d = materialize(k); d.lessons[+t.dataset.i].done = t.checked; queueSave('day:' + k, 200); render(); }
+    else if (act === 'bjj') { dayObj(k).bjjDone = t.checked; queueSave('day:' + k, 200); render(); }
+    else if (act === 'sign') { dayObj(t.dataset.k).sign = t.checked; queueSave('day:' + t.dataset.k, 200); render(); }
+    else if (t.dataset.sf && /^(wfrom|wto|wgoal|wml|bjj)$/.test(t.dataset.sf)) render();
+  });
+
+  app.addEventListener('input', e => {
+    const t = e.target, k = view.date;
+    if (readOnly) return;
+    if (t.dataset.f) {
+      const f = t.dataset.f;
+      if (f === 'name' || f === 'hw') { const d = materialize(k); d.lessons[+t.dataset.i][f] = t.value; if (f === 'hw') autosize(t); }
+      else dayObj(k)[f] = t.value;
+      queueSave('day:' + k);
+      return;
+    }
+    const sf = t.dataset.sf; if (!sf) return;
+    if (sf === 'sch') {
+      const w = t.dataset.w, i = +t.dataset.i, old = S.schedule[w][i];
+      S.schedule[w][i] = t.value;
+      const today = todayKey();
+      for (const dk of Object.keys(D)) {
+        if (dk >= today && String(wd(dk)) === w && Array.isArray(D[dk].lessons) && D[dk].lessons[i] && D[dk].lessons[i].name === old) {
+          D[dk].lessons[i].name = t.value; queueSave('day:' + dk);
+        }
+      }
+    }
+    else if (sf === 'time') S.times[+t.dataset.i] = t.value;
+    else if (sf === 'bjj') { if (t.value) S.bjj[t.dataset.w] = t.value; else S.bjj[t.dataset.w] = ''; }
+    else if (sf === 'cls') S.className = t.value;
+    else {
+      const v = parseInt(t.value, 10); if (isNaN(v)) return;
+      if (sf === 'wfrom') S.water.from = Math.min(23, Math.max(0, v));
+      if (sf === 'wto') S.water.to = Math.min(23, Math.max(0, v));
+      if (sf === 'wgoal') S.water.goal = Math.min(15, Math.max(1, v));
+      if (sf === 'wml') S.water.ml = Math.min(1000, Math.max(10, v));
+    }
+    queueSave('settings');
+  });
+
+  function drink(k, n) {
+    if (readOnly) return;
+    const d = dayObj(k); d.water = Math.max(0, (d.water || 0) + n);
+    queueSave('day:' + k, 300); render();
+  }
+
+  // ---------- water reminders (per viewer, while the page is open) ----------
+  const PREF_KEY = 'dnevnik-2a-prefs';
+  let prefs = { remind: true, sound: false, bjjRemind: true };
+  try { Object.assign(prefs, JSON.parse(lsGet(PREF_KEY) || '{}')); } catch {}
+  function savePrefs() { lsSet(PREF_KEY, JSON.stringify(prefs)); }
+
+  let audio = null;
+  function ensureAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch { audio = null; } }
+  function chime() {
+    if (!audio) return;
+    const t0 = audio.currentTime;
+    [880, 1175].forEach((f, j) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t0 + j * 0.18); g.gain.exponentialRampToValueAtTime(0.18, t0 + j * 0.18 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + j * 0.18 + 0.5);
+      o.connect(g).connect(audio.destination); o.start(t0 + j * 0.18); o.stop(t0 + j * 0.18 + 0.55);
+    });
+  }
+  document.addEventListener('pointerdown', () => { if (prefs.sound) ensureAudio(); }, { once: true });
+
+  const toast = document.getElementById('toast');
+  let toastKind = 'water';
+  function minusHour(hm) { const [h, m] = String(hm).split(':').map(Number); if (isNaN(h)) return ''; const x = (h * 60 + (m || 0) - 60 + 1440) % 1440; return Math.floor(x / 60) + ':' + pad(x % 60); }
+  function showToast(test) {
+    toastKind = 'water';
+    const k = todayKey(), n = (D[k] && D[k].water) || 0;
+    document.getElementById('toast-title').textContent = test ? 'Так будет выглядеть напоминание' : 'Пора попить воды';
+    document.getElementById('toast-text').textContent = `Сегодня выпито ${n} из ${S.water.goal}. Один стакан — и дальше по делам.`;
+    document.getElementById('toast-yes').hidden = false;
+    document.getElementById('toast-later').textContent = 'Позже';
+    toast.style.background = ''; toast.style.color = '';
+    toast.hidden = false;
+    if (prefs.sound) chime();
+  }
+  function showBjjToast(time) {
+    toastKind = 'bjj';
+    document.getElementById('toast-title').textContent = `Через час тренировка БЖЖ — в ${time}`;
+    document.getElementById('toast-text').textContent = 'Собрать форму, бутылку воды и полотенце.';
+    document.getElementById('toast-yes').hidden = true;
+    document.getElementById('toast-later').textContent = 'Понял';
+    toast.style.background = 'var(--mat)'; toast.style.color = 'var(--mat-ink)';
+    toast.hidden = false;
+    if (prefs.sound) chime();
+  }
+  document.getElementById('toast-yes').addEventListener('click', () => { toast.hidden = true; if (toastKind === 'water') drink(todayKey(), 1); });
+  document.getElementById('toast-later').addEventListener('click', () => { toast.hidden = true; });
+
+  function nextReminder(now) {
+    const h = now.getHours();
+    for (let x = h + 1; x <= S.water.to; x++) if (x >= S.water.from) return x + ':00';
+    return null;
+  }
+  function updateNext() {
+    const el = document.getElementById('next-rem'); if (!el) return;
+    if (!prefs.remind) { el.textContent = 'Напоминания выключены.'; return; }
+    const nx = nextReminder(new Date());
+    el.innerHTML = nx ? `Следующее напоминание в <b>${nx}</b>. Работает, пока дневник открыт.` : `Сегодня напоминаний больше нет, завтра с <b>${S.water.from}:00</b>.`;
+  }
+  let lastFired = lsGet('dnevnik-2a-lastrem') || '';
+  let lastBjj = '';
+  function tick() {
+    const now = new Date(), h = now.getHours(), m = now.getMinutes();
+    const stamp = todayKey() + 'T' + h;
+    if (prefs.remind && h >= S.water.from && h <= S.water.to && m < 5 && lastFired !== stamp) {
+      lastFired = stamp; lsSet('dnevnik-2a-lastrem', stamp); showToast(false);
+    }
+    const bt = bjjTime(todayKey());
+    if (prefs.bjjRemind && bt) {
+      const [bh, bm] = bt.split(':').map(Number);
+      const diff = (bh * 60 + (bm || 0)) - (h * 60 + m);
+      const bstamp = todayKey() + 'B' + bt;
+      if (diff > 50 && diff <= 60 && lsGet('dnevnik-2a-lastbjj') !== bstamp && lastBjj !== bstamp) {
+        lastBjj = bstamp; lsSet('dnevnik-2a-lastbjj', bstamp); showBjjToast(bt);
+      }
+    }
+    updateNext();
+  }
+  setInterval(tick, 20000);
+
+  // day change at midnight keeps "today" fresh
+  let lastToday = todayKey();
+  setInterval(() => { const t = todayKey(); if (t !== lastToday) { if (view.date === lastToday) view.date = t; lastToday = t; render(); } }, 60000);
+
+  render();
+  connect();
+  tick();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
